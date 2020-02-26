@@ -24,7 +24,7 @@ const main = async () => {
     //read csv file
     console.log(`Reading csv...`)
     let genes = []
-    let file = fs.readFileSync("../ADHD_DOM_test.csv", 'utf-8')
+    let file = fs.readFileSync(process.argv[2], 'utf-8')
     const records = parse(file, {relax_column_count: true})
     records.map((line,i) => {
         if(line[1] && i>1) genes.push(line[1])
@@ -211,39 +211,108 @@ const main = async () => {
         
     }//end of gene for loop
 
-
+  
+    //variants AF
+    const findgene = (n) => {
+        while(!records[n][1]){n--}
+        return n
+    }
+    records.map((line, i) => {
+        if (i>1) {        
+            let chr = records[findgene(i)][5].replace('chr', '')
+            let pos = line[15]
+            let geno = line[18].split("|")
+            let ref = line[17].split("|")[0]
+            let alt = ''
+            for (e of geno) {
+                if (e.includes(':') && !e.includes('^')) {
+                    let arr = e.split(":")
+                    if (arr[0] !== ref) alt = arr[0]
+                    if (arr[1] !== ref) alt = arr[1]
+                    break
+                } 
+            }
+            fs.appendFileSync('tmpVar.txt', chr+'\t'+pos+'\t'+(Number(pos)+ref.length-1)+'\t'+ref+'\t'+alt+'\n')
+        }
+    })
+    console.log("Searching gnomad...")
+    let gnomad_grep = execSync(`grep -f tmpVar.txt ../res/hg19_gnomad_exome.txt`, { encoding: 'utf-8' }).split('\n');
+    console.log("Searching exac_nonpsych...")
+    let exac_grep = execSync(`grep -f tmpVar.txt ../res/hg19_exac03nonpsych.txt`, { encoding: 'utf-8' }).split('\n');
+    console.log("Searching PolyPhen...")
+    let pp_grep = execSync(`grep -f tmpVar.txt ../res/hg19_ljb2_pp2hdiv.txt`, { encoding: 'utf-8' }).split('\n');
+    console.log("Searching SIFT...")
+    let sift_grep = execSync(`grep -f tmpVar.txt ../res/hg19_ljb23_sift.txt`, { encoding: 'utf-8' }).split('\n');
+    gnomad_grep = gnomad_grep.map(l => l.split('\t'))
+    exac_grep = exac_grep.map(l => l.split('\t'))
+    pp_grep = pp_grep.map(l => l.split('\t'))
+    sift_grep = sift_grep.map(l => l.split('\t'))
+    fs.unlinkSync('tmpVar.txt')
+    
+    
     //generate csv
     col = ["StandardName","Start","End","Description","Type","Synonym","pLI","ASD","ADHD","Textmining","Experiments","Knowledge","MousePheno","TissueML","GTEx","BrainSpan"]
-    records[1].splice(11, 0, ...col)
+    col2 = col.map(() => "")
+    col3 = ["gnomad_AF", "ExAC_nonpsych_AF", "PolyPhen", "SIFT"]
 
+    records[1].splice(11, 0, ...col)
+    records[1].splice(19+col.length, 0, ...col3)
     records.map((line, i) => {
         if(line[1] && i>1) {
             let gene = synonym_convert[line[1]] || line[1]
             let csv_array = []
             csv_array.push(
-            table[gene].name, 
-            table[gene].start || 'NA', 
-            table[gene].end || 'NA', 
-            table[gene].description || 'NA',
-            table[gene].type || 'NA', 
-            table[gene].synonym?table[gene].synonym:'NA', 
-            table[gene].pLI?table[gene].pLI.toFixed(2):'NA', 
-            table[gene].sfari || '0', 
-            table[gene].adhdgene || '0', 
-            table[gene].tm?table[gene].tm.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA', 
-            table[gene].exp?table[gene].exp.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA', 
-            table[gene].kl?table[gene].kl.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA',
-            table[gene].ho?table[gene].ho.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA',
-            table[gene].hb?table[gene].hb.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA',
-            table[gene].gt?table[gene].gt.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA',
-            table[gene].al?table[gene].al.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA'
+                table[gene].name, 
+                table[gene].start || 'NA', 
+                table[gene].end || 'NA', 
+                table[gene].description || 'NA',
+                table[gene].type || 'NA', 
+                table[gene].synonym?table[gene].synonym:'NA', 
+                table[gene].pLI?table[gene].pLI.toFixed(2):'NA', 
+                table[gene].sfari || '0', 
+                table[gene].adhdgene || '0', 
+                table[gene].tm?table[gene].tm.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA', 
+                table[gene].exp?table[gene].exp.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA', 
+                table[gene].kl?table[gene].kl.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA',
+                table[gene].ho?table[gene].ho.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA',
+                table[gene].hb?table[gene].hb.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA',
+                table[gene].gt?table[gene].gt.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA',
+                table[gene].al?table[gene].al.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA'
             )
             records[i].splice(11, 0, ...csv_array)
+        } else if (!line[1]) {
+            records[i].splice(11, 0, ...col2)
         }
-        if(line[12]){
+        if(i>1){
             let csv_array = []
-            const output = execSync('ls', { encoding: 'utf-8' });
-            records[i].splice(11+length(col), 0, ...csv_array)
+            let chr = records[findgene(i)][5].replace('chr', '')
+            let pos = line[15+col.length]
+            let geno = line[18+col.length].split("|")
+            let ref = ''
+            let alt = ''
+            for (e of geno) {
+                if (e.includes(':') && !e.includes('^')) {
+                    let arr = e.split(":")
+                    ref = arr[0]
+                    alt = arr[1]
+                    break
+                } 
+            }
+            let gnomad = gnomad_grep.filter(line => line[0]==chr && line[1]==pos && line[3]==ref && line[4]==alt)[0]
+            let exac = exac_grep.filter(line => line[0]==chr && line[1]==pos && line[3]==ref && line[4]==alt)[0]
+            let pp = pp_grep.filter(line => line[0]==chr && line[1]==pos && line[3]==ref && line[4]==alt)[0]
+            let sift = sift_grep.filter(line => line[0]==chr && line[1]==pos && line[3]==ref && line[4]==alt)[0]
+            gnomad = gnomad?gnomad[5]:'NA'
+            exac = exac?exac[5]:'NA'
+            pp = pp?pp[6]:'NA'
+            sift = sift?sift[7]:'NA'
+            csv_array.push(
+                gnomad,
+                exac,
+                pp,
+                sift
+            )
+            records[i].splice(19+col.length, 0, ...csv_array)
         }
     })
 
@@ -252,4 +321,8 @@ const main = async () => {
 
 }
 
-main()
+main().then(() => {
+    process.exit()
+}).catch(e => {
+    console.error(e)
+})
