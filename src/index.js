@@ -1,4 +1,4 @@
-//args: 1. input csv; 2. output csv; 3. reflist file
+//args: 1. input csv; 2. output csv; 3. reflist file; 4. humandb path
 
 const parse = require('csv-parse/lib/sync')
 const stringify = require('csv-stringify/lib/sync')
@@ -19,6 +19,7 @@ const hom_convert = require("../res/hom_conversion").hom_convert
 const ncbi_convert = require("../res/ncbi_conversion").ncbi_convert
 const refseq_convert = JSON.parse(require("../res/refseq_conversion").refseq_convert)
 const synonym_convert = require("../res/synonym_conversion").synonym_convert
+const humandb = process.argv[5]
 
 
 const main = async () => {
@@ -279,13 +280,13 @@ const main = async () => {
         }
     })
     console.log("Searching gnomad...")
-    let gnomad_grep = execSync(`grep -f tmpVar.txt ../res/hg19_gnomad_exome.txt`, { encoding: 'utf-8' }).split('\n');
+    let gnomad_grep = execSync(`grep -f tmpVar.txt ${humandb}/hg19_gnomad_exome.txt`, { encoding: 'utf-8' }).split('\n');
     console.log("Searching exac_nonpsych...")
-    let exac_grep = execSync(`grep -f tmpVar.txt ../res/hg19_exac03nonpsych.txt`, { encoding: 'utf-8' }).split('\n');
+    let exac_grep = execSync(`grep -f tmpVar.txt ${humandb}/hg19_exac03nonpsych.txt`, { encoding: 'utf-8' }).split('\n');
     console.log("Searching PolyPhen...")
-    let pp_grep = execSync(`grep -f tmpVar.txt ../res/hg19_ljb2_pp2hdiv.txt`, { encoding: 'utf-8' }).split('\n');
+    let pp_grep = execSync(`grep -f tmpVar.txt ${humandb}/hg19_ljb2_pp2hdiv.txt`, { encoding: 'utf-8' }).split('\n');
     console.log("Searching SIFT...")
-    let sift_grep = execSync(`grep -f tmpVar.txt ../res/hg19_ljb23_sift.txt`, { encoding: 'utf-8' }).split('\n');
+    let sift_grep = execSync(`grep -f tmpVar.txt ${humandb}/hg19_ljb23_sift.txt`, { encoding: 'utf-8' }).split('\n');
     gnomad_grep = gnomad_grep.map(l => l.split('\t'))
     exac_grep = exac_grep.map(l => l.split('\t'))
     pp_grep = pp_grep.map(l => l.split('\t'))
@@ -311,7 +312,7 @@ const main = async () => {
                 table[gene].description || 'NA',
                 table[gene].type || 'NA', 
                 table[gene].synonym?table[gene].synonym:'NA', 
-                table[gene].pLI?table[gene].pLI.toFixed(2):'NA', 
+                table[gene].pLI?table[gene].pLI:'NA', 
                 table[gene].sfari || '0', 
                 table[gene].adhdgene || '0', 
                 table[gene].tm?table[gene].tm.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA', 
@@ -331,20 +332,20 @@ const main = async () => {
             let chr = records[findgene(i)][5].replace('chr', '')
             let pos = line[15+col.length]
             let geno = line[18+col.length].split("|")
-            let ref = ''
+            let ref = line[17+col.length].split("|")[0]
             let alt = ''
             for (e of geno) {
                 if (e.includes(':') && !e.includes('^')) {
                     let arr = e.split(":")
-                    ref = arr[0]
-                    alt = arr[1]
+                    if (arr[0] !== ref) alt = arr[0]
+                    if (arr[1] !== ref) alt = arr[1]
                     break
                 } 
             }
-            let gnomad = gnomad_grep.filter(line => line[0]==chr && line[1]==pos && line[3]==ref && line[4]==alt)[0]
-            let exac = exac_grep.filter(line => line[0]==chr && line[1]==pos && line[3]==ref && line[4]==alt)[0]
-            let pp = pp_grep.filter(line => line[0]==chr && line[1]==pos && line[3]==ref && line[4]==alt)[0]
-            let sift = sift_grep.filter(line => line[0]==chr && line[1]==pos && line[3]==ref && line[4]==alt)[0]
+            let gnomad = gnomad_grep.filter(l => l[0]==chr && l[1]==pos && l[3]==ref && l[4]==alt)[0]
+            let exac = exac_grep.filter(l => l[0]==chr && l[1]==pos && l[3]==ref && l[4]==alt)[0]
+            let pp = pp_grep.filter(l => l[0]==chr && l[1]==pos && l[3]==ref && l[4]==alt)[0]
+            let sift = sift_grep.filter(l => l[0]==chr && l[1]==pos && l[3]==ref && l[4]==alt)[0]
             gnomad = gnomad?gnomad[5]:'NA'
             exac = exac?exac[5]:'NA'
             pp = pp?pp[6]:'NA'
@@ -355,12 +356,11 @@ const main = async () => {
                 exac,
                 pp,
                 sift
-            )
-            records[i].splice(19+col.length, 0, ...csv_array)
-        }
-    })
-
-    
+                )
+                records[i].splice(19+col.length, 0, ...csv_array)
+            }
+        })
+        
     fs.writeFileSync(process.argv[3], stringify(records))
 
 }
