@@ -1,3 +1,5 @@
+//args: 1. input csv; 2. output csv; 3. reflist file
+
 const parse = require('csv-parse/lib/sync')
 const stringify = require('csv-stringify/lib/sync')
 const fs = require('fs')
@@ -25,17 +27,26 @@ const main = async () => {
     console.log(`Reading csv...`)
     let genes = []
     let file = fs.readFileSync(process.argv[2], 'utf-8')
+    let reflist = fs.readFileSync(process.argv[4], 'utf-8').split('\n')
     const records = parse(file, {relax_column_count: true})
     records.map((line,i) => {
         if(line[1] && i>1) genes.push(line[1])
+    })
+    let sid = {}
+    reflist.map(line => {
+        let l = line.split('\t')
+        if(l.length > 1) {
+            let fam = l[1].match(/fam_(\d+)\./)
+            sid[l[0]] = (fam?fam[1]:'')+':'+l[2].replace('.vat.gvf', '')+"("+l[5][0]+")"
+        }
     })
 
     //search for synonym
     genes = genes.map(gene => {
         if (synonym_convert[gene]) {
-        return synonym_convert[gene]
+            return synonym_convert[gene]
         } else {
-        return gene
+            return gene
         }
     })
 
@@ -212,13 +223,15 @@ const main = async () => {
     }//end of gene for loop
 
   
-    //variants AF
+    //variants AF & genotypes
     const findgene = (n) => {
         while(!records[n][1]){n--}
         return n
     }
+    let genorecord = {}
     records.map((line, i) => {
-        if (i>1) {        
+        if (i>1) {
+            //pos
             let chr = records[findgene(i)][5].replace('chr', '')
             let pos = line[15]
             let geno = line[18].split("|")
@@ -233,6 +246,35 @@ const main = async () => {
                 } 
             }
             fs.appendFileSync('tmpVar.txt', chr+'\t'+pos+'\t'+(Number(pos)+ref.length-1)+'\t'+ref+'\t'+alt+'\n')
+
+            //genotype
+            let genoarr = line[18].split(';')
+            genoarr = genoarr.map(s => {
+                let sarr = s.split('|')
+                //exclude no calls
+                if(!sarr[2].includes('^')) {
+                    //parse segments
+                    let seg = sarr[1].split(',')
+                    seg = seg.map(s => {
+                        if(s.includes('-')){
+                            let snarr = s.split('-')
+                            let r = []
+                            for (let i=snarr[0]; i<=snarr[1]; i++) {
+                                r.push(sid[i])
+                            }
+                            return r.join(',')
+                        } else {
+                            return sid[s]
+                        }
+                    })
+                    sarr[1] = seg.join(',')
+                    return sarr.join('|')
+                } else {
+                    return ''
+                }
+            })//end of genotype parsing
+            genorecord[i] = genoarr.filter(e => e!='').join(';')
+
         }
     })
     console.log("Searching gnomad...")
@@ -253,7 +295,7 @@ const main = async () => {
     //generate csv
     col = ["StandardName","Start","End","Description","Type","Synonym","pLI","ASD","ADHD","Textmining","Experiments","Knowledge","MousePheno","TissueML","GTEx","BrainSpan"]
     col2 = col.map(() => "")
-    col3 = ["gnomad_AF", "ExAC_nonpsych_AF", "PolyPhen", "SIFT"]
+    col3 = ["Parsed_Genotype","gnomad_AF", "ExAC_nonpsych_AF", "PolyPhen", "SIFT"]
 
     records[1].splice(11, 0, ...col)
     records[1].splice(19+col.length, 0, ...col3)
@@ -307,6 +349,7 @@ const main = async () => {
             pp = pp?pp[6]:'NA'
             sift = sift?sift[7]:'NA'
             csv_array.push(
+                genorecord[i],
                 gnomad,
                 exac,
                 pp,
@@ -317,7 +360,7 @@ const main = async () => {
     })
 
     
-    fs.writeFileSync("output.csv", stringify(records))
+    fs.writeFileSync(process.argv[3], stringify(records))
 
 }
 
