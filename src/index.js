@@ -252,9 +252,10 @@ const main = async () => {
             genoarr = genoarr.map(s => {
                 let sarr = s.split('|')
                 //exclude no calls
-                if(!sarr[2].includes('^')) {
+                let f = sarr.length == 4 ? 0 : 1
+                if(sarr[2-f] && !sarr[2-f].includes('^')) {
                     //parse segments
-                    let seg = sarr[1].split(',')
+                    let seg = sarr[1-f].split(',')
                     seg = seg.map(s => {
                         if(s.includes('-')){
                             let snarr = s.split('-')
@@ -267,7 +268,7 @@ const main = async () => {
                             return sid[s]
                         }
                     })
-                    sarr[1] = seg.join(',')
+                    sarr[1-f] = seg.join(',')
                     return sarr.join('|')
                 } else {
                     return ''
