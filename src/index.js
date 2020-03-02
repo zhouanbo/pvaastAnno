@@ -280,7 +280,7 @@ const main = async () => {
         }
     })
     console.log("Searching gnomad...")
-    let gnomad_grep = execSync(`grep -f tmpVar.txt ${humandb}/hg19_gnomad_exome.txt`, { encoding: 'utf-8' }).split('\n');
+    let gnomad_grep = execSync(`grep -f tmpVar.txt ${humandb}/hg19_gnomad211_exome.txt`, { encoding: 'utf-8' }).split('\n');
     console.log("Searching exac_nonpsych...")
     let exac_grep = execSync(`grep -f tmpVar.txt ${humandb}/hg19_exac03nonpsych.txt`, { encoding: 'utf-8' }).split('\n');
     console.log("Searching PolyPhen...")
@@ -297,7 +297,7 @@ const main = async () => {
     //generate csv
     col = ["StandardName","Start","End","Description","Type","Synonym","pLI","ASD","ADHD","Textmining","Experiments","Knowledge","MousePheno","TissueML","GTEx","BrainSpan"]
     col2 = col.map(() => "")
-    col3 = ["Parsed_Genotype","gnomad_AF", "ExAC_nonpsych_AF", "PolyPhen", "SIFT"]
+    col3 = ["Parsed_Genotype","gnomad_AF", "gnomad_non_neuro_AF", "ExAC_nonpsych_AF", "PolyPhen", "SIFT"]
 
     records[1].splice(11, 0, ...col)
     records[1].splice(19+col.length, 0, ...col3)
@@ -346,6 +346,7 @@ const main = async () => {
             let exac = exac_grep.filter(l => l[0]==chr && l[1]==pos && l[3]==ref && l[4]==alt)[0]
             let pp = pp_grep.filter(l => l[0]==chr && l[1]==pos && l[3]==ref && l[4]==alt)[0]
             let sift = sift_grep.filter(l => l[0]==chr && l[1]==pos && l[3]==ref && l[4]==alt)[0]
+            let gnomad_non_neuro = gnomad?gnomad[19]:'NA'
             gnomad = gnomad?gnomad[5]:'NA'
             exac = exac?exac[5]:'NA'
             pp = pp?pp[6]:'NA'
@@ -353,6 +354,7 @@ const main = async () => {
             csv_array.push(
                 genorecord[i],
                 gnomad,
+                gnomad_non_neuro,
                 exac,
                 pp,
                 sift
