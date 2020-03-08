@@ -13,8 +13,7 @@ firebase.initializeApp({
     projectId: 'geneanno'
 });
 
-const adhdgene = require("../res/adhdgene").adhdgene
-const sfari = require("../res/sfari").sfari
+const database = require("../res/database").database
 const hom_convert = require("../res/hom_conversion").hom_convert
 const ncbi_convert = require("../res/ncbi_conversion").ncbi_convert
 const refseq_convert = JSON.parse(require("../res/refseq_conversion").refseq_convert)
@@ -92,15 +91,15 @@ const main = async () => {
         })
 
 
-        //SFARI
-        table[gene] = Object.assign(table[gene], {
-        sfari: sfari[gene.toUpperCase()] ? sfari[gene.toUpperCase()] : 0
+        //Database
+        let text = []
+        Object.keys(database).map(d => {
+            if(database[d].includes(gene.toUpperCase())) {
+                text.push(d)
+            }
         })
-
-
-        //ADHDgene
         table[gene] = Object.assign(table[gene], {
-        adhdgene: adhdgene[gene.toUpperCase()] ? 1 : 0
+            database: text.join(',')
         })
 
 
@@ -295,7 +294,7 @@ const main = async () => {
     
     
     //generate csv
-    col = ["StandardName","Start","End","Description","Type","Synonym","pLI","ASD","ADHD","Textmining","Experiments","Knowledge","MousePheno","TissueML","GTEx","BrainSpan"]
+    col = ["StandardName","Start","End","Description","Type","Synonym","pLI","Database","Textmining","Experiments","Knowledge","MousePheno","TissueML","GTEx","BrainSpan"]
     col2 = col.map(() => "")
     col3 = ["Parsed_Genotype","gnomad_AF", "gnomad_non_neuro_AF", "ExAC_nonpsych_AF", "PolyPhen", "SIFT"]
 
@@ -313,8 +312,7 @@ const main = async () => {
                 table[gene].type || 'NA', 
                 table[gene].synonym?table[gene].synonym:'NA', 
                 table[gene].pLI?table[gene].pLI:'NA', 
-                table[gene].sfari || '0', 
-                table[gene].adhdgene || '0', 
+                table[gene].database?table[gene].database:'NA', 
                 table[gene].tm?table[gene].tm.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA', 
                 table[gene].exp?table[gene].exp.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA', 
                 table[gene].kl?table[gene].kl.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA',
