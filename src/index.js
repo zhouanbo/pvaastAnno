@@ -28,7 +28,7 @@ const main = async () => {
     let genes = []
     let file = fs.readFileSync(process.argv[2], 'utf-8')
     let reflist = fs.readFileSync(process.argv[4], 'utf-8').split('\n')
-    const records = parse(file, {relax_column_count: true})
+    const records = parse(file, {relax_column_count: true}).slice(0, 1000)
     records.map((line,i) => {
         if(line[1] && i>1) genes.push(line[1])
     })
