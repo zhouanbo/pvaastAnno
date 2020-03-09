@@ -228,6 +228,7 @@ const main = async () => {
         while(!records[n][1]){n--}
         return n
     }
+    let ran = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
     let genorecord = {}
     records.map((line, i) => {
         if (i>1) {
@@ -245,7 +246,7 @@ const main = async () => {
                     break
                 } 
             }
-            fs.appendFileSync('tmpVar.txt', chr+'\t'+pos+'\t'+(Number(pos)+ref.length-1)+'\t'+ref+'\t'+alt+'\n')
+            fs.appendFileSync(`tmpVar_${ran}.txt`, chr+'\t'+pos+'\t'+(Number(pos)+ref.length-1)+'\t'+ref+'\t'+alt+'\n')
 
             //genotype
             let genoarr = line[18].split(';')
@@ -278,7 +279,6 @@ const main = async () => {
 
         }
     })
-    let ran = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
     console.log("Searching gnomad...")
     let gnomad_grep = execSync(`grep -f tmpVar_${ran}.txt ${humandb}/hg19_gnomad211_exome.txt`, { encoding: 'utf-8' }).split('\n');
     console.log("Searching exac_nonpsych...")
