@@ -295,7 +295,7 @@ const main = async () => {
     
     
     //generate csv
-    col = ["StandardName","Start","End","Description","Type","Synonym","pLI","Database","Textmining","Experiments","Knowledge","MousePheno","TissueML","GTEx","BrainSpan"]
+    col = ["StandardName","Start","End","Description","Type","Synonym","pLI","Database","Textmining","Experiments","Knowledge","MousePheno","HumanBase","GTEx","BrainSpan"]
     col2 = col.map(() => "")
     col3 = ["Parsed_Genotype","gnomad_AF", "gnomad_non_neuro_AF", "ExAC_nonpsych_AF", "PolyPhen", "SIFT"]
 
