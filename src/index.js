@@ -278,19 +278,20 @@ const main = async () => {
 
         }
     })
+    let ran = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
     console.log("Searching gnomad...")
-    let gnomad_grep = execSync(`grep -f tmpVar.txt ${humandb}/hg19_gnomad211_exome.txt`, { encoding: 'utf-8' }).split('\n');
+    let gnomad_grep = execSync(`grep -f tmpVar_${ran}.txt ${humandb}/hg19_gnomad211_exome.txt`, { encoding: 'utf-8' }).split('\n');
     console.log("Searching exac_nonpsych...")
-    let exac_grep = execSync(`grep -f tmpVar.txt ${humandb}/hg19_exac03nonpsych.txt`, { encoding: 'utf-8' }).split('\n');
+    let exac_grep = execSync(`grep -f tmpVar_${ran}.txt ${humandb}/hg19_exac03nonpsych.txt`, { encoding: 'utf-8' }).split('\n');
     console.log("Searching PolyPhen...")
-    let pp_grep = execSync(`grep -f tmpVar.txt ${humandb}/hg19_ljb2_pp2hdiv.txt`, { encoding: 'utf-8' }).split('\n');
+    let pp_grep = execSync(`grep -f tmpVar_${ran}.txt ${humandb}/hg19_ljb2_pp2hdiv.txt`, { encoding: 'utf-8' }).split('\n');
     console.log("Searching SIFT...")
-    let sift_grep = execSync(`grep -f tmpVar.txt ${humandb}/hg19_ljb23_sift.txt`, { encoding: 'utf-8' }).split('\n');
+    let sift_grep = execSync(`grep -f tmpVar_${ran}.txt ${humandb}/hg19_ljb23_sift.txt`, { encoding: 'utf-8' }).split('\n');
     gnomad_grep = gnomad_grep.map(l => l.split('\t'))
     exac_grep = exac_grep.map(l => l.split('\t'))
     pp_grep = pp_grep.map(l => l.split('\t'))
     sift_grep = sift_grep.map(l => l.split('\t'))
-    fs.unlinkSync('tmpVar.txt')
+    fs.unlinkSync(`tmpVar_${ran}.txt`)
     
     
     //generate csv
