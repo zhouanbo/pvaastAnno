@@ -164,7 +164,7 @@ const main = async () => {
         })
         .then((myJson) => {
             let data = myJson.sort((a,b) => a.score < b.score ? 1 : -1)
-            r = data.map(e => {
+            r = data.slice(0, 10).map(e => {
             e.name = decodeURIComponent(e.term.title)
             e.value = e.score
             return e
