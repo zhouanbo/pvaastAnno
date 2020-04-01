@@ -242,7 +242,13 @@ const main = async () => {
         }
 })
         
-    fs.writeFileSync(process.argv[3], stringify(result).replace('\'', ''))
+    fs.writeFileSync(process.argv[3], stringify(result, {
+        cast: {
+          string: function(value){
+            return {value: value, quoted: true}
+          }
+        }
+    }))
 
 }
 
