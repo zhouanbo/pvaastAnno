@@ -213,7 +213,7 @@ const main = async () => {
     
     
     //generate csv
-    let col = ["Entry","StandardName","Start","End","Description","Type","Synonym","pLI","Database","Textmining","Experiments","Knowledge","MousePheno","HumanBase","GTEx","BrainSpan"]
+    let col = ["Entry","StandardName","Chromosome","Start","End","Description","Type","Synonym","pLI","Database","Textmining","Experiments","Knowledge","MousePheno","HumanBase","GTEx","BrainSpan"]
     let result = []
     result.push(col)
     result.push(...records)
@@ -223,6 +223,7 @@ const main = async () => {
             let csv_array = []
             csv_array.push(
                 table[gene].name, 
+                table[gene].chr || 'NA',
                 table[gene].start || 'NA', 
                 table[gene].end || 'NA', 
                 table[gene].description || 'NA',
