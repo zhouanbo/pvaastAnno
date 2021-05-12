@@ -28,7 +28,7 @@ const main = async () => {
     let genes = []
     let file = fs.readFileSync(process.argv[2], 'utf-8')
     let reflist = fs.readFileSync(process.argv[4], 'utf-8').split('\n')
-    const records = parse(file, {relax_column_count: true}).slice(0, 1000)
+    const records = parse(file, {relax_column_count: true})
     records.map((line,i) => {
         if(line[1] && i>1) genes.push(line[1])
     })
@@ -319,8 +319,10 @@ const main = async () => {
                 table[gene].kl?table[gene].kl.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA',
                 table[gene].ho?table[gene].ho.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA',
                 table[gene].hb?table[gene].hb.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA',
-                table[gene].gt?table[gene].gt.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA',
-                table[gene].al?table[gene].al.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA'
+                //table[gene].gt?table[gene].gt.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA',
+                table[gene].gt?table[gene].gt.reduce((b, e)=>{if(e.name.startsWith("Brain") && (e.tvalue?e.tvalue:e.value)>5){return "1"}else{return b}}, "0"):'NA',
+                //table[gene].al?table[gene].al.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA'
+                table[gene].al?table[gene].al.reduce((b, e)=>{if((e.tvalue?e.tvalue:e.value)>5){return "1"}else{return b}}, "0"):'NA',
             )
             records[i].splice(11, 0, ...csv_array)
         } else if (!line[1]) {
