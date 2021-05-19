@@ -20,7 +20,6 @@ const refseq_convert = JSON.parse(require("../res/refseq_conversion").refseq_con
 const synonym_convert = require("../res/synonym_conversion").synonym_convert
 const humandb = process.argv[5]
 
-
 const main = async () => {
     
     //read csv file
@@ -28,7 +27,8 @@ const main = async () => {
     let genes = []
     let file = fs.readFileSync(process.argv[2], 'utf-8')
     let reflist = fs.readFileSync(process.argv[4], 'utf-8').split('\n')
-    const records = parse(file, {relax_column_count: true})
+    let records = parse(file, {relax_column_count: true})
+    records = records.slice(0,2100)
     records.map((line,i) => {
         if(line[1] && i>1) genes.push(line[1])
     })
@@ -203,6 +203,24 @@ const main = async () => {
         if (r.length > 0)
         table[gene] = Object.assign(table[gene], {gt: r.sort((a,b) => a.value < b.value ? 1 : -1)})
 
+	
+	//HDBR
+        snapshot = await firebase.firestore().collection('hdbr').where('Gene Name', '==', gene.toUpperCase()).limit(1).get()
+        r = []
+        snapshot.forEach(doc => {
+        let data = doc.data()
+        delete data['Gene Name']
+        delete data['Gene ID']
+        Object.keys(data).map(e => {
+            r.push({
+            name: decodeURIComponent(e),
+            value: data[e]
+            })
+        })
+        })
+        if (r.length > 0)
+        table[gene] = Object.assign(table[gene], {hd: r.sort((a,b) => a.value < b.value ? 1 : -1)})
+
 
         //Allen
         snapshot = await firebase.firestore().collection('allen').where('name', '==', gene.toUpperCase()).limit(1).get()
@@ -246,7 +264,7 @@ const main = async () => {
                     break
                 } 
             }
-            fs.appendFileSync(`tmpVar_${ran}.txt`, chr+'\t'+pos+'\t'+(Number(pos)+ref.length-1)+'\t'+ref+'\t'+alt+'\n')
+            fs.appendFileSync(`/tmp/tmpVar_${ran}.txt`, chr+'\t'+pos+'\t'+(Number(pos)+ref.length-1)+'\t'+ref+'\t'+alt+'\n')
 
             //genotype
             let genoarr = line[18].split(';')
@@ -280,22 +298,22 @@ const main = async () => {
         }
     })
     console.log("Searching gnomad...")
-    let gnomad_grep = execSync(`grep -f tmpVar_${ran}.txt ${humandb}/hg19_gnomad211_exome.txt`, { encoding: 'utf-8' }).split('\n');
+    let gnomad_grep = execSync(`grep -f /tmp/tmpVar_${ran}.txt ${humandb}/hg19_gnomad211_exome.txt`, { encoding: 'utf-8' }).split('\n');
     console.log("Searching exac_nonpsych...")
-    let exac_grep = execSync(`grep -f tmpVar_${ran}.txt ${humandb}/hg19_exac03nonpsych.txt`, { encoding: 'utf-8' }).split('\n');
+    let exac_grep = execSync(`grep -f /tmp/tmpVar_${ran}.txt ${humandb}/hg19_exac03nonpsych.txt`, { encoding: 'utf-8' }).split('\n');
     console.log("Searching PolyPhen...")
-    let pp_grep = execSync(`grep -f tmpVar_${ran}.txt ${humandb}/hg19_ljb2_pp2hdiv.txt`, { encoding: 'utf-8' }).split('\n');
+    let pp_grep = execSync(`grep -f /tmp/tmpVar_${ran}.txt ${humandb}/hg19_ljb2_pp2hdiv.txt`, { encoding: 'utf-8' }).split('\n');
     console.log("Searching SIFT...")
-    let sift_grep = execSync(`grep -f tmpVar_${ran}.txt ${humandb}/hg19_ljb23_sift.txt`, { encoding: 'utf-8' }).split('\n');
+    let sift_grep = execSync(`grep -f /tmp/tmpVar_${ran}.txt ${humandb}/hg19_ljb23_sift.txt`, { encoding: 'utf-8' }).split('\n');
     gnomad_grep = gnomad_grep.map(l => l.split('\t'))
     exac_grep = exac_grep.map(l => l.split('\t'))
     pp_grep = pp_grep.map(l => l.split('\t'))
     sift_grep = sift_grep.map(l => l.split('\t'))
-    fs.unlinkSync(`tmpVar_${ran}.txt`)
+    fs.unlinkSync(`/tmp/tmpVar_${ran}.txt`)
     
     
     //generate csv
-    col = ["StandardName","Start","End","Description","Type","Synonym","pLI","Database","Textmining","Experiments","Knowledge","MousePheno","HumanBase","GTEx","BrainSpan"]
+    col = ["StandardName","Start","End","Description","Type","Synonym","pLI","Database","Textmining","Experiments","Knowledge","MousePheno","HumanBase","GTEx","HDBR","BrainSpan"]
     col2 = col.map(() => "")
     col3 = ["Parsed_Genotype","gnomad_AF", "gnomad_non_neuro_AF", "ExAC_nonpsych_AF", "PolyPhen", "SIFT"]
 
@@ -321,6 +339,7 @@ const main = async () => {
                 table[gene].hb?table[gene].hb.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA',
                 //table[gene].gt?table[gene].gt.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA',
                 table[gene].gt?table[gene].gt.reduce((b, e)=>{if(e.name.startsWith("Brain") && (e.tvalue?e.tvalue:e.value)>5){return "1"}else{return b}}, "0"):'NA',
+		table[gene].hd?table[gene].hd.reduce((b, e)=>{if((e.tvalue?e.tvalue:e.value)>5){return "1"}else{return b}}, "0"):'NA',
                 //table[gene].al?table[gene].al.map(e=>(e.tvalue?e.tvalue:e.value).toFixed(2)+":"+e.name).join('|'):'NA'
                 table[gene].al?table[gene].al.reduce((b, e)=>{if((e.tvalue?e.tvalue:e.value)>5){return "1"}else{return b}}, "0"):'NA',
             )
@@ -363,7 +382,6 @@ const main = async () => {
                 records[i].splice(19+col.length, 0, ...csv_array)
             }
         })
-        
     fs.writeFileSync(process.argv[3], stringify(records))
 
 }
